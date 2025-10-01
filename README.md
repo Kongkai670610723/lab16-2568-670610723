@@ -1,5 +1,12 @@
 # Lecture 18 - RESTful API (Part 3)
 
+
+### ป้อนข้อมูลนักศึกษา
+
+รหัส นศ.: 670610723
+
+ชื่อ-สกุล : ภูรินท์ อินทจักร์ (Phurin Inthajak)
+
 ### Content
 
 - Current API
