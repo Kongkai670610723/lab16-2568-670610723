@@ -10,14 +10,22 @@ import type { User, CustomRequest } from "../libs/types.js";
 
 // import database
 import { users, reset_users } from "../db/db.js";
+import { zStudentId } from "../libs/zodValidators.js";
 
-//
-//import { checkRoleAdmin } from "../middlewares/check";
+
+// import authenticateToken && checkRoleAdmin
+import { authenticateToken } from "../middlewares/authenMiddleware.js";
+import { checkRoleAdmin } from "../middlewares/checkRoleAdminMiddleware.js";
+
+/*
+import { checkRoleStudent } from "../middlewares/checkRoleStudentMiddleware.js";
+import { checkAllRoles } from "../middlewares/checkAllRolesMiddleware.js";
+*/
 
 const router = Router();
 
 // GET /api/v2/users    (get แล้วได้ user ทั้งหมด ทั้งหมดกลับไป)
-router.get("/", (req: Request, res: Response) => {
+router.get("/", authenticateToken, checkRoleAdmin, (req: Request, res: Response) => {
   try { /*
     //Get Authorization headers
     const authHeader = req.headers["authorization"]
