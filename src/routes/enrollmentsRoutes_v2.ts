@@ -2,9 +2,9 @@
 import { Router, type Request, type Response } from "express";
 
 //
-import { jwt } from "jsonwebtoken";
-import { dontenv } from "dotenv";
-dotenv.config();
+import  jwt  from "jsonwebtoken";
+import  dontenv  from "dotenv";
+dontenv.config();
 
 //import type
 import type { User, Student, UserPayload, CustomRequest, Enrollment } from "../libs/types.js";
@@ -33,7 +33,7 @@ router.get("/", authenticateToken, checkRoleAdmin, (req: CustomRequest,res: Resp
         const user_id = students.map((s: Student) =>{
             const students_Enrollments = enrollments
             .filter((ent: Enrollment) => ent.studentId === s.studentId)
-            .map((ent: Enrollment) => ({ courseId: ent.courseId}));
+            .map((ent: Enrollment) => ent.courseId);
             
 
             return {
@@ -43,13 +43,13 @@ router.get("/", authenticateToken, checkRoleAdmin, (req: CustomRequest,res: Resp
         });
 
             return res.status(200).json({ 
-                success: false,
+                success: true,
                 message: "Enrollments Information",
                 data: user_id,
             });
 
     } catch (err) {
-        return res.status(200).json({
+        return res.status(500).json({
             success: false,
             message: "Something is wrong, please try again",
             error: err,
@@ -61,75 +61,9 @@ router.get("/", authenticateToken, checkRoleAdmin, (req: CustomRequest,res: Resp
 
 
 
-// POST /api/v2/enrollments/login
-router.post("/login", (req: Request, res: Response) => {
-    try {
-        // 1. get username and password from body
-        const { username, password } = req.body;          //เพราะข้อมูลเราอยู่ใน body ทั้ง 2 ตัว
-        const user = users.find(
-            (u: User) => u.username === username && u.password === password         
-            //ดึง Users มาดูทีละคน โดยแต่ละคนเราจะดูว่าค่าที่ส่งมามันตรงกับค่าที่ส่งมาใน request ไหม 
-
-        );
-
-        // 2. check if user exists (search with username & password in DB)      (เช็ก user ว่า คนที่คุณค้นมามันมีค่าจริงหรือป่าว)
-        // ในกรณีที่ไม่มี user
-        if (!user) {
-            return res.status(401).json ({
-                success: false,
-                message: "Invalid username or password!"
-            });
-        }
-
-
-        // 3. create JWT token (with user info object as payload) using JWT_SECRET_KEY
-        //    (optional: save the token as part of User data)
-
-        // ในกรณีที่มี user
-        //ขั้นแรกต้องไปดึง secret มาก่อน
-        const jwt_secret = process.env.JWT_SECRET || "forget_secret";
-
-
-        //มีค่า key แล้ว
-        //นำ key ไปใช้ในการเข้ารหัส
-
-        //สร้าง Token
-        const token = jwt.sign({                //ต้องการ playload (ข้อมูลที่ server อยากจะฝากฝังเข้าไปเก็บไว้ใน token ด้วย)
-            //create JWT playload               // playload เอาไว้เพิ่มชื่อ บลาๆ~~ (แนบข้อมูลเท่าที่จำเป็น เผื่อมีคนเอาไปแกะ)
-            username: user.username,
-            studentId: user.studentId,
-            role: user.role,
-        },jwt_secret, { expiresIn: "5m" });     // jwt_secret เอาไว้ใช้เข้ารหัส && ฟังก์ชันเพิ่มเติม (Ex. { expiresIn: "5m" })
-
-
-
-        // 4. send HTTP response with JWT token         //ทำการส่ง response กลับไป
-        res.status(200).json({
-            success: true,
-            message: "Login successful",
-            token                                       //อย่าลืมใส่ token
-        })
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Something went wrong.",
-            error: error
-        })
-    }
-  
-
-  return res.status(500).json({
-    success: false,
-    message: "POST /api/v2/users/login has not been implemented yet",
-  });
-});
-
-
-
-
 
 // POST /api/v2/enrollments/reset
-router.post("/reset", (req: Request, res: Response) => {
+router.post("/reset", authenticateToken, checkRoleAdmin, (req: Request, res: Response) => {
   try {
     reset_enrollments();
     return res.status(200).json({
@@ -152,24 +86,10 @@ router.post("/reset", (req: Request, res: Response) => {
 
 
 // GET  /api/v2/enrollments/:studentId
-// GET /api/v2/enrollments/:studentID
-router.get(
-  "/:studentId",
-  authenticateToken,
-  checkAllRoles,
-  (req: CustomRequest, res: Response) => {
+router.get("/:studentId", authenticateToken, (req: CustomRequest, res: Response) => {
     try {
       const studentId = req.params.studentId;
-      const user = req.user;
       const result = zStudentId.safeParse(studentId);
-
-      const foundIndex = students.findIndex(
-        (s: Student) => s.studentId === studentId
-      );
-
-      const student = students.find(
-        (sd: Student) => sd.studentId === studentId
-      );
 
       if (!result.success) {
         return res.status(400).json({
@@ -178,24 +98,51 @@ router.get(
         });
       }
 
-      if (!student) {
+      const studentIndex = students.findIndex(
+        (student: Student) => student.studentId === studentId
+      );
+
+      if (studentIndex === -1) {
         return res.status(404).json({
           success: false,
-          message: "Student does not exist",
+          message: "StudentId does not exists",
         });
       }
 
-      if (user?.role === "STUDENT" && user.studentId !== studentId) {
+      const payload = req.user;
+      const token = req.token;
+
+      // 2. check if user exists (search with username) and role is ADMIN
+      const user = users.find((u: User) => u.username === payload?.username);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized user",
+        });
+      }
+
+      if (
+        user.role === "ADMIN" ||
+        (user.role === "STUDENT" && user.studentId === studentId)
+      ) {
+
+        const courseIds = enrollments
+          .filter((en: Enrollment) => en.studentId === studentId)
+          .map((en: Enrollment) => en.courseId);
+
+        return res.status(200).json({
+          success: true,
+          message: "Student information",
+          data: { studentId, courses: courseIds },
+        });
+
+
+      } else {
         return res.status(403).json({
           success: false,
-          massage: "Forbidden access",
+          message: "Forbidden access",
         });
       }
-
-      res.status(200).json({
-        success: true,
-        data: students[foundIndex],
-      });
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -210,126 +157,181 @@ router.get(
 
 
 
-
-
-// POST /api/v2/enrollments/:studentID
-router.post(
-  "/:studentId",
-  authenticateToken,
-  checkRoleStudent,
-  (req: CustomRequest, res: Response) => {
+//POST  /api/v2/enrollments/:studentId
+router.post("/:studentId", authenticateToken, checkRoleStudent, (req: CustomRequest, res: Response) => {
     try {
-      const { studentId: paramStudentId } = req.params;
-      const { courseId } = req.body;
-      const user = req.user;
+      const studentId = req.params.studentId;
+      const body = req.body as Enrollment;
 
-      const result = zStudentId.safeParse(paramStudentId);
-      if (!result.success) {
+      const result1 = zStudentId.safeParse(studentId);
+      const result2 = zEnrollmentBody.safeParse(body);
+
+      if (!result1.success) {
         return res.status(400).json({
-          success: false,
           message: "Validation failed",
-          errors: result.error.issues[0]?.message,
+          errors: result1.error.issues[0]?.message,
         });
       }
-
-      const student = students.find(
-        (std: Student) => std.studentId === paramStudentId
+      if (!result2.success) {
+        return res.status(400).json({
+          message: "Validation failed",
+          errors: result2.error.issues[0]?.message,
+        });
+      }
+      const studentIndex = students.findIndex(
+        (student) => studentId === student.studentId
       );
-      if (!student) {
+
+      if (studentIndex === -1) {
         return res.status(404).json({
           success: false,
-          message: "Student does not exist",
+          message: "StudentId does not exists",
+        });
+      }
+      const payload = req.user;
+      const token = req.token;
+
+      // 2. check if user exists (search with username) and role is ADMIN
+      const user = users.find((u: User) => u.username === payload?.username);
+
+      if (
+        studentId != body.studentId ||
+        user?.studentId != studentId ||
+        user?.studentId != body.studentId
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden access",
+        });
+      }
+      console.log(body);
+
+      const findenrollment = enrollments.find(
+        (enroll: Enrollment) =>
+          body.studentId === enroll.studentId &&
+          body.courseId === enroll.courseId
+      );
+
+      if (findenrollment) {
+        return res.status(409).json({
+          success: false,
+          message: "Enrollment is already exists",
         });
       }
 
-      if (user?.role === "ADMIN" || user?.studentId !== paramStudentId) {
+      enrollments.push(body);
+      const newcourse = enrollments
+        .filter((enroll) => enroll.studentId === studentId)
+        .map((enroll) => enroll.courseId);
+
+      students[studentIndex] = {
+        ...students[studentIndex],
+        courses: newcourse,
+      } as Student;
+
+
+      const courseId = req.body.courseId;
+
+
+      return res.status(200).json({
+        success: true,
+        message: `Student ${studentId} && Course ${courseId} has been added successfully`,
+        data: {
+          studentId: studentId,
+          courseId: courseId
+        }
+      });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Something is wrong, please try again",
+        error: err,
+      });
+    }
+  }
+);
+
+
+
+router.delete("/:studentId", authenticateToken, checkRoleStudent, (req: CustomRequest, res: Response) => {
+    try {
+      const studentId = req.params.studentId;
+      const body = req.body;
+
+      const result1 = zStudentId.safeParse(studentId);
+      const result2 = zEnrollmentBody.safeParse(body);
+
+      if (!result1.success) {
+        return res.status(400).json({
+          message: "Validation failed",
+          errors: result1.error.issues[0]?.message,
+        });
+      }
+      if (!result2.success) {
+        return res.status(400).json({
+          message: "Validation failed",
+          errors: result2.error.issues[0]?.message,
+        });
+      }
+
+      const payload = req.user;
+      const token = req.token;
+      // 2. check if user exists (search with username) and role is ADMIN
+      const user = users.find((u: User) => u.username === payload?.username);
+
+      if (
+        studentId != body.studentId ||
+        user?.studentId != studentId ||
+        user?.studentId != body.studentId
+      ) {
         return res.status(403).json({
           success: false,
           message: "Forbidden access",
         });
       }
 
-      const alreadyEnrolled = enrollments.find(
-        (enr) =>
-          enr.studentId === paramStudentId && enr.courseId === courseId
+      const studentIndex = students.findIndex(
+        (student) => student.studentId === studentId
       );
-      if (alreadyEnrolled) {
-        return res.status(409).json({
+
+      if (studentIndex === -1) {
+        return res.status(404).json({
           success: false,
-          message: "studentId && courseId is already exists",
+          message: "StudentId does not exists",
         });
       }
 
-      const new_Enrollment = { studentId: paramStudentId, courseId };
-      enrollments.push(new_Enrollment);
-
-      return res.status(201).json({
-        success: true,
-        message: `Student ${paramStudentId} && Course ${courseId} has been added successfully`,
-        data: new_Enrollment,
-      });
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Something went wrong, please try again",
-        error: err,
-      });
-    }
-  }
-);
-
-
-
-
-
-
-
-
-
-// DELETE /api/v2/enrollments/:studentID
-router.delete(
-  "/:studentId",
-  authenticateToken,
-  (req: CustomRequest, res: Response) => {
-    try {
-      const { studentId: paramStudentId } = req.params;
-      const { courseId } = req.body;
-      const user = req.user;
-
-      if (user?.role !== "STUDENT" || user.studentId !== paramStudentId) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not allowed to modify another student's data",
-        });
-      }
-
-      const index = enrollments.findIndex(
-        (enr) => enr.studentId === paramStudentId && enr.courseId === courseId
+      const enrollIndex = enrollments.findIndex(
+        (enroll) =>
+          enroll.studentId === studentId && enroll.courseId === body.courseId
       );
-
-      if (index === -1) {
+      if (enrollIndex === -1) {
         return res.status(404).json({
           success: false,
           message: "Enrollment does not exists",
         });
       }
 
-      enrollments.splice(index, 1);
+      enrollments.splice(enrollIndex, 1);
 
+      const newcourse = enrollments
+        .filter((enroll) => enroll.studentId === studentId)
+        .map((enroll) => enroll.courseId);
+
+     students[studentIndex] = {...students[studentIndex] ,  courses:newcourse } as Student ;
       return res.status(200).json({
         success: true,
-        message: `Student ${paramStudentId} && Course ${courseId} has been deleted successfully`,
-        data: enrollments.filter((enr) => enr.studentId === paramStudentId),
+        message: `Student ${studentId} && Course ${body.courseId} has been deleted successfully`,
+        data: enrollments,
       });
     } catch (err) {
       return res.status(500).json({
         success: false,
-        message: "Something went wrong, please try again",
+        message: "Something is wrong, please try again",
         error: err,
       });
     }
   }
 );
-
 
 export default router;

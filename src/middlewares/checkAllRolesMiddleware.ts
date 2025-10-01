@@ -19,7 +19,7 @@ export const checkAllRoles = (                                                //
 
   // 2. check if user exists (search with username) and role is ADMIN
   const user = users.find((u: User) => u.username === payload?.username);
-  if (!user) {                                     //ลบ || user.role !== "STUDENT"
+  if (!user) {                                                               //ลบ || user.role !== "STUDENT"
     return res.status(401).json({
       success: false,
       message: "Unauthorized user",
