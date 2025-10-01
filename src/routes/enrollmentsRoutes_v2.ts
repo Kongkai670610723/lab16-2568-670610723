@@ -252,7 +252,7 @@ router.post("/:studentId", authenticateToken, checkRoleStudent, (req: CustomRequ
 );
 
 
-
+//DELETE  /api/v2/enrollments/:studentId
 router.delete("/:studentId", authenticateToken, checkRoleStudent, (req: CustomRequest, res: Response) => {
     try {
       const studentId = req.params.studentId;
