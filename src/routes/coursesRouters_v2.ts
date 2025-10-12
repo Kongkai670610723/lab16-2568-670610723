@@ -1,3 +1,4 @@
+//D:\workspace\lab16-2568-670610723\src\routes\coursesRouters_v2.ts
 import { Router, type Request, type Response } from "express";
 import {
   zCourseId,

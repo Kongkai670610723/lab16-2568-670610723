@@ -1,8 +1,13 @@
+//D:\workspace\lab16-2568-670610723\src\routes\usersRoutes.ts
+
 //1.ทำการ copy usersRoutes จาก github
 import { Router, type Request, type Response } from "express";
 
 // ******ทำการติดตั้งทั้ง 3 อันนี้ด้วย*********
 import jwt from "jsonwebtoken";             //pnpm install jsonwebtoken, pnpm i jsonwebtoken, pnpm i -D @types/jsonwebtoken
+
+import { JWT_SECRET } from "../config/jwt.js";
+
 import dotenv from "dotenv";                //pnpm install dotenv
 dotenv.config();
 
@@ -137,7 +142,7 @@ router.post("/login", (req: Request, res: Response) => {
 
         // ในกรณีที่มี user
         //ขั้นแรกต้องไปดึง secret มาก่อน
-        const jwt_secret = process.env.JWT_SECRET || "forget_secret";
+        //  const jwt_secret = process.env.JWT_SECRET || "forget_secret"; ลบทิ้งได้เลยเพราะ import JWT_SECRET มาแล้ว
         //มีค่า key แล้ว
         //นำ key ไปใช้ในการเข้ารหัส
 
@@ -145,14 +150,14 @@ router.post("/login", (req: Request, res: Response) => {
         const token = jwt.sign({                //ต้องการ playload (ข้อมูลที่ server อยากจะฝากฝังเข้าไปเก็บไว้ใน token ด้วย)
             //create JWT playload               // playload เอาไว้เพิ่มชื่อ บลาๆ~~ (แนบข้อมูลเท่าที่จำเป็น เผื่อมีคนเอาไปแกะ)
             username: user.username,
-            studentId: user.studentId,
+            studentId: user.studentId ?? undefined,
             role: user.role,
-        },jwt_secret, { expiresIn: "5m" });     // jwt_secret เอาไว้ใช้เข้ารหัส && ฟังก์ชันเพิ่มเติม (Ex. { expiresIn: "5m" })
+        },JWT_SECRET, { expiresIn: "5m" });     // jwt_secret เอาไว้ใช้เข้ารหัส && ฟังก์ชันเพิ่มเติม (Ex. { expiresIn: "5m" })
 
 
 
         // 4. send HTTP response with JWT token         //ทำการส่ง response กลับไป
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Login successful",
             token                                       //อย่าลืมใส่ token
@@ -162,14 +167,8 @@ router.post("/login", (req: Request, res: Response) => {
             success: false,
             message: "Something went wrong.",
             error: error
-        })
+        });
     }
-  
-
-  return res.status(500).json({
-    success: false,
-    message: "POST /api/v2/users/login has not been implemented yet",
-  });
 });
 
 // POST /api/v2/users/logout

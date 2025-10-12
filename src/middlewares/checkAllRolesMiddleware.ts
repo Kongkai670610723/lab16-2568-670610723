@@ -1,3 +1,5 @@
+//D:\workspace\lab16-2568-670610723\src\middlewares\checkAllRolesMiddleware.ts
+
 // src/middlewares/checkRoleAdminMiddleware.ts
 import { type Request, type Response, type NextFunction } from "express";
 import { type CustomRequest, type User } from "../libs/types.js";

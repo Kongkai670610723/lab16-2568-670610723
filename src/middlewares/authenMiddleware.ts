@@ -1,9 +1,14 @@
+//D:\workspace\lab16-2568-670610723\src\middlewares\authenMiddleware.ts
 import { type Request, type Response, type NextFunction } from "express";
+
 import jwt from "jsonwebtoken";
+
 import dotenv from "dotenv";
 dotenv.config();
 
 import { type CustomRequest, type UserPayload } from "../libs/types.js";
+
+import { JWT_SECRET } from "../config/jwt.js";
 
 // interface CustomRequest extends Request {
 //   user?: any; // Define the user property
@@ -26,7 +31,7 @@ export const authenticateToken = (
   }
 
   // 2. extract the "...JWT-Token..." if available
-  const token = authHeader && authHeader.split(" ")[1];
+   const token = authHeader.split(" ")[1];
   if (token == null)
     return res.status(401).json({
       success: false,
@@ -36,8 +41,8 @@ export const authenticateToken = (
   try {
     // 3. verify token using JWT_SECRET_KEY and
     //    get payload "user" = { username, studentId, role }
-    const jwt_secret = process.env.JWT_SECRET || "this_is_my_secret";
-    jwt.verify(token, jwt_secret, (err, user) => {
+    //  const JWT_SECRET = process.env.JWT_SECRET || "this_is_my_secret"; ลบทิ้งได้เลยเพราะ import JWT_SECRET มาแล้ว
+    jwt.verify(token, JWT_SECRET, (err, user) => {
       if (err)
         return res.status(403).json({
           success: false,
