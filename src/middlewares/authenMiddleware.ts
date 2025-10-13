@@ -8,7 +8,7 @@ dotenv.config();
 
 import { type CustomRequest, type UserPayload } from "../libs/types.js";
 
-import { JWT_SECRET } from "../config/jwt.js";
+import { getJWTSecret } from "../config/jwt.js";
 
 // interface CustomRequest extends Request {
 //   user?: any; // Define the user property
@@ -31,7 +31,8 @@ export const authenticateToken = (
   }
 
   // 2. extract the "...JWT-Token..." if available
-   const token = authHeader.split(" ")[1];
+  const token = authHeader.split(" ")[1];
+  
   if (token == null)
     return res.status(401).json({
       success: false,
@@ -42,7 +43,7 @@ export const authenticateToken = (
     // 3. verify token using JWT_SECRET_KEY and
     //    get payload "user" = { username, studentId, role }
     //  const JWT_SECRET = process.env.JWT_SECRET || "this_is_my_secret"; ลบทิ้งได้เลยเพราะ import JWT_SECRET มาแล้ว
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, getJWTSecret(), (err, user) => {
       if (err)
         return res.status(403).json({
           success: false,

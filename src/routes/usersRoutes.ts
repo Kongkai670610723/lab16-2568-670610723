@@ -6,7 +6,7 @@ import { Router, type Request, type Response } from "express";
 // ******ทำการติดตั้งทั้ง 3 อันนี้ด้วย*********
 import jwt from "jsonwebtoken";             //pnpm install jsonwebtoken, pnpm i jsonwebtoken, pnpm i -D @types/jsonwebtoken
 
-import { JWT_SECRET } from "../config/jwt.js";
+import { getJWTSecret } from "../config/jwt.js";
 
 import dotenv from "dotenv";                //pnpm install dotenv
 dotenv.config();
@@ -152,7 +152,7 @@ router.post("/login", (req: Request, res: Response) => {
             username: user.username,
             studentId: user.studentId ?? undefined,
             role: user.role,
-        },JWT_SECRET, { expiresIn: "5m" });     // jwt_secret เอาไว้ใช้เข้ารหัส && ฟังก์ชันเพิ่มเติม (Ex. { expiresIn: "5m" })
+        }, getJWTSecret(), { expiresIn: "5m" });     // jwt_secret เอาไว้ใช้เข้ารหัส && ฟังก์ชันเพิ่มเติม (Ex. { expiresIn: "5m" })
 
 
 

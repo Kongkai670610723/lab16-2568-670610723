@@ -1,4 +1,5 @@
 //D:\workspace\lab16-2568-670610723\src\index.ts
+import "dotenv/config";
 
 import express, { type Request, type Response } from "express";
 
